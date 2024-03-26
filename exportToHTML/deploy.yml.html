@@ -1,0 +1,105 @@
+<html>
+<head>
+<title>deploy.yml</title>
+<meta http-equiv="Content-Type" content="text/html; charset=utf-8">
+<style type="text/css">
+.s0 { color: #cf8e6d;}
+.s1 { color: #bcbec4;}
+.s2 { color: #bcbec4;}
+.s3 { color: #bcbec4;}
+.s4 { color: #6aab73;}
+</style>
+</head>
+<body bgcolor="#1e1f22">
+<table CELLSPACING=0 CELLPADDING=5 COLS=1 WIDTH="100%" BGCOLOR="#606060" >
+<tr><td><center>
+<font face="Arial, Helvetica" color="#000000">
+deploy.yml</font>
+</center></td></tr></table>
+<pre><span class="s0">name</span><span class="s1">: </span><span class="s3">Build documentation</span>
+
+<span class="s0">on</span><span class="s1">:</span>
+    <span class="s0">push</span><span class="s1">:</span>
+        <span class="s0">branches</span><span class="s1">: [</span><span class="s4">&quot;main&quot;</span><span class="s1">]</span>
+    <span class="s0">workflow_dispatch</span><span class="s1">:</span>
+
+<span class="s0">permissions</span><span class="s1">:</span>
+    <span class="s0">id-token</span><span class="s1">: </span><span class="s3">write</span>
+    <span class="s0">pages</span><span class="s1">: </span><span class="s3">write</span>
+
+<span class="s0">env</span><span class="s1">:</span>
+    <span class="s0">INSTANCE</span><span class="s1">: </span><span class="s3">Writerside/ft    </span>
+    <span class="s0">ARTIFACT</span><span class="s1">: </span><span class="s3">webHelpFT2-all.zip</span>
+    <span class="s0">DOCKER_VERSION</span><span class="s1">: </span><span class="s3">2.1.1479-p3869    </span>
+
+<span class="s0">jobs</span><span class="s1">:</span>
+    <span class="s0">build</span><span class="s1">:</span>
+        <span class="s0">runs-on</span><span class="s1">: </span><span class="s3">ubuntu-latest</span>
+
+        <span class="s0">steps</span><span class="s1">:</span>
+        <span class="s1">- </span><span class="s0">name</span><span class="s1">: </span><span class="s3">Checkout repository</span>
+          <span class="s0">uses</span><span class="s1">: </span><span class="s3">actions/checkout@v3</span>
+
+        <span class="s1">- </span><span class="s0">name</span><span class="s1">: </span><span class="s3">Build Writerside docs using Docker</span>
+          <span class="s0">uses</span><span class="s1">: </span><span class="s3">JetBrains/writerside-github-action@v4</span>
+          <span class="s0">with</span><span class="s1">:</span>
+            <span class="s0">instance</span><span class="s1">: </span><span class="s3">${{ env.INSTANCE }}</span>
+            <span class="s0">artifact</span><span class="s1">: </span><span class="s3">${{ env.ARTIFACT }}</span>
+            <span class="s0">docker-version</span><span class="s1">: </span><span class="s3">${{ env.DOCKER_VERSION }}</span>
+
+        <span class="s1">- </span><span class="s0">name</span><span class="s1">: </span><span class="s3">Upload documentation</span>
+          <span class="s0">uses</span><span class="s1">: </span><span class="s3">actions/upload-artifact@v3</span>
+          <span class="s0">with</span><span class="s1">:</span>
+            <span class="s0">name</span><span class="s1">: </span><span class="s3">docs</span>
+            <span class="s0">path</span><span class="s1">: </span><span class="s3">|</span>
+                <span class="s3">artifacts/${{ env.ARTIFACT }}</span>
+                <span class="s3">artifacts/report.json</span>
+            <span class="s0">retention-days</span><span class="s1">: </span><span class="s3">7</span>
+
+    <span class="s0">test</span><span class="s1">:</span>
+        <span class="s0">needs</span><span class="s1">: </span><span class="s3">build</span>
+        <span class="s0">runs-on</span><span class="s1">: </span><span class="s3">ubuntu-latest</span>
+
+        <span class="s0">steps</span><span class="s1">:</span>
+            <span class="s1">- </span><span class="s0">name</span><span class="s1">: </span><span class="s3">Download artifacts</span>
+              <span class="s0">uses</span><span class="s1">: </span><span class="s3">actions/download-artifact@v1</span>
+              <span class="s0">with</span><span class="s1">:</span>
+                <span class="s0">name</span><span class="s1">: </span><span class="s3">docs</span>
+                <span class="s0">path</span><span class="s1">: </span><span class="s3">artifacts</span>
+
+            <span class="s1">- </span><span class="s0">name</span><span class="s1">: </span><span class="s3">Test documentation</span>
+              <span class="s0">uses</span><span class="s1">: </span><span class="s3">JetBrains/writerside-checker-action@v1</span>
+              <span class="s0">with</span><span class="s1">:</span>
+                <span class="s0">instance</span><span class="s1">: </span><span class="s3">${{ env.INSTANCE }}</span>
+
+    <span class="s0">deploy</span><span class="s1">:</span>
+        <span class="s0">environment</span><span class="s1">:</span>
+            <span class="s0">name</span><span class="s1">: </span><span class="s3">github-pages</span>
+            <span class="s0">url</span><span class="s1">: </span><span class="s3">${{ steps.deployment.outputs.page_url }}</span>
+        <span class="s0">needs</span><span class="s1">: </span><span class="s3">test</span>
+        <span class="s0">runs-on</span><span class="s1">: </span><span class="s3">ubuntu-latest</span>
+        <span class="s0">steps</span><span class="s1">:</span>
+            <span class="s1">- </span><span class="s0">name</span><span class="s1">: </span><span class="s3">Download artifact</span>
+              <span class="s0">uses</span><span class="s1">: </span><span class="s3">actions/download-artifact@v3</span>
+              <span class="s0">with</span><span class="s1">:</span>
+                <span class="s0">name</span><span class="s1">: </span><span class="s3">docs</span>
+
+            <span class="s1">- </span><span class="s0">name</span><span class="s1">: </span><span class="s3">Unzip artifact</span>
+              <span class="s0">uses</span><span class="s1">: </span><span class="s3">montudor/action-zip@v1</span>
+              <span class="s0">with</span><span class="s1">:</span>
+                <span class="s0">args</span><span class="s1">: </span><span class="s3">unzip -qq ${{ env.ARTIFACT }} -d dir</span>
+
+            <span class="s1">- </span><span class="s0">name</span><span class="s1">: </span><span class="s3">Setup Pages</span>
+              <span class="s0">uses</span><span class="s1">: </span><span class="s3">actions/configure-pages@v2</span>
+
+            <span class="s1">- </span><span class="s0">name</span><span class="s1">: </span><span class="s3">Upload artifact</span>
+              <span class="s0">uses</span><span class="s1">: </span><span class="s3">actions/upload-pages-artifact@v1</span>
+              <span class="s0">with</span><span class="s1">:</span>
+                <span class="s0">path</span><span class="s1">: </span><span class="s3">dir</span>
+
+            <span class="s1">- </span><span class="s0">name</span><span class="s1">: </span><span class="s3">Deploy to GitHub Pages</span>
+              <span class="s0">id</span><span class="s1">: </span><span class="s3">deployment</span>
+              <span class="s0">uses</span><span class="s1">: </span><span class="s3">actions/deploy-pages@v1</span>
+</pre>
+</body>
+</html>
